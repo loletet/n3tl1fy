@@ -3,300 +3,192 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Browser ROM Player</title>
+  <title>Arcade</title>
+
+  <link rel="preconnect" href="https://cdn.emulatorjs.org" crossorigin>
+  <link rel="preload" href="https://cdn.emulatorjs.org/stable/data/loader.js" as="script" crossorigin>
+  <link rel="preload" href="/roms/mslugx.zip" as="fetch">
+
   <style>
-    :root {
-      color-scheme: dark;
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #050505;
+      color: #f4f4f4;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #0b0f17;
-      color: #e7edf7;
     }
 
     body {
-      margin: 0;
-      min-height: 100vh;
+      display: grid;
+      place-items: center;
+    }
+
+    #cabinet {
+      position: fixed;
+      inset: 0;
       display: grid;
       place-items: center;
       background:
-        radial-gradient(circle at top left, rgba(77, 130, 255, 0.24), transparent 34rem),
-        radial-gradient(circle at bottom right, rgba(255, 80, 120, 0.16), transparent 30rem),
-        #0b0f17;
-    }
-
-    main {
-      width: min(1120px, calc(100vw - 32px));
-      margin: 24px auto;
-      display: grid;
-      gap: 18px;
-    }
-
-    .panel {
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 18px;
-      background: rgba(14, 20, 32, 0.78);
-      box-shadow: 0 20px 70px rgba(0,0,0,0.35);
-      padding: 18px;
-      backdrop-filter: blur(10px);
-    }
-
-    h1 {
-      margin: 0 0 6px;
-      font-size: clamp(28px, 4vw, 46px);
-      letter-spacing: -0.04em;
-    }
-
-    p {
-      margin: 8px 0;
-      color: #b8c3d5;
-      line-height: 1.55;
-    }
-
-    label {
-      display: block;
-      margin: 12px 0 6px;
-      color: #d5deed;
-      font-weight: 650;
-    }
-
-    input, select, button {
-      box-sizing: border-box;
-      width: 100%;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: #101827;
-      color: #e7edf7;
-      padding: 12px 13px;
-      font: inherit;
-    }
-
-    button {
-      cursor: pointer;
-      font-weight: 800;
-      background: linear-gradient(135deg, #6b8cff, #a855f7);
-      border: 0;
-      margin-top: 14px;
-    }
-
-    button.secondary {
-      background: #182235;
-      border: 1px solid rgba(255,255,255,0.16);
-    }
-
-    button:disabled {
-      opacity: 0.52;
-      cursor: not-allowed;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    @media (max-width: 760px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    #game-shell {
-      overflow: hidden;
-      padding: 0;
+        radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.06), transparent 32rem),
+        linear-gradient(180deg, #111 0%, #050505 100%);
     }
 
     #game {
-      width: 100%;
-      aspect-ratio: 4 / 3;
-      min-height: 420px;
-      background: #05070c;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
     }
 
-    .small {
-      font-size: 14px;
-      color: #97a6bb;
+    #game canvas {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain;
+      display: block;
+      background: #000;
     }
 
-    .status {
-      min-height: 22px;
-      color: #f7d778;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 13px;
-      white-space: pre-wrap;
+    #start-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 45%, rgba(255, 30, 30, 0.18), transparent 24rem),
+        rgba(0, 0, 0, 0.88);
+      transition: opacity 220ms ease;
     }
 
-    code {
-      background: #0b1220;
-      padding: 2px 6px;
-      border-radius: 7px;
+    #start-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #start-button {
+      appearance: none;
+      border: 2px solid #f6d36b;
+      background: #141414;
+      color: #f6d36b;
+      padding: 1rem 2rem;
+      border-radius: 999px;
+      font-size: clamp(1.4rem, 4vw, 3rem);
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      cursor: pointer;
+      box-shadow:
+        0 0 0 6px rgba(246, 211, 107, 0.08),
+        0 0 32px rgba(246, 211, 107, 0.28),
+        inset 0 0 24px rgba(246, 211, 107, 0.08);
+      text-transform: uppercase;
+    }
+
+    #start-button:active {
+      transform: translateY(2px);
+    }
+
+    #loading {
+      position: fixed;
+      left: 50%;
+      bottom: 2rem;
+      z-index: 11;
+      transform: translateX(-50%);
+      color: #f6d36b;
+      font-size: 0.9rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      opacity: 0;
+      transition: opacity 160ms ease;
+    }
+
+    #loading.visible {
+      opacity: 1;
     }
   </style>
 </head>
+
 <body>
-  <main>
-    <section class="panel">
-      <h1>Browser ROM Player</h1>
-      <p>
-        Drop this folder on Netlify, then either place a ROM in <code>/roms/</code>
-        and launch it by path, or choose a ROM from your computer. For Neo Geo arcade games,
-        use <code>arcade</code>; EmulatorJS maps that to the FBNeo core.
-      </p>
-      <p class="small">
-        Keep ROM and BIOS files that you are legally entitled to use. This page does not download ROMs.
-      </p>
-    </section>
-
-    <section class="panel grid">
-      <div>
-        <label for="core">System / core</label>
-        <select id="core">
-          <option value="arcade" selected>Arcade / Neo Geo / FBNeo</option>
-          <option value="fbneo">FBNeo direct</option>
-          <option value="nes">NES</option>
-          <option value="snes">SNES</option>
-          <option value="gba">Game Boy Advance</option>
-          <option value="gb">Game Boy</option>
-          <option value="gbc">Game Boy Color</option>
-          <option value="n64">Nintendo 64</option>
-          <option value="segaMD">Mega Drive / Genesis</option>
-          <option value="psx">PlayStation</option>
-        </select>
-
-        <label for="hosted-rom">Hosted ROM path</label>
-        <input id="hosted-rom" value="/roms/mslugx.zip" />
-
-        <label for="hosted-bios">Hosted BIOS path, optional</label>
-        <input id="hosted-bios" value="/bios/neogeo.zip" />
-
-        <button id="start-hosted">Start hosted ROM</button>
-        <p class="small">
-          Put your ROM at the path above. For Metal Slug X, keep it zipped, usually named
-          <code>mslugx.zip</code>. If your dump/core requires Neo Geo BIOS, place
-          <code>neogeo.zip</code> in <code>/bios/</code>.
-        </p>
-      </div>
-
-      <div>
-        <label for="rom-file">Choose ROM from this computer</label>
-        <input id="rom-file" type="file" accept=".zip,.7z,.nes,.sfc,.smc,.gba,.gb,.gbc,.z64,.n64,.v64,.bin,.cue,.chd,.iso" />
-
-        <label for="bios-file">Choose BIOS, optional</label>
-        <input id="bios-file" type="file" accept=".zip,.bin,.rom,.gba" />
-
-        <button id="start-file">Start selected file</button>
-        <button class="secondary" id="reload-page" type="button">Reset emulator</button>
-        <p class="small">
-          File mode keeps the ROM local to your browser. It is useful if you do not want to deploy
-          a ROM file to Netlify at all.
-        </p>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="status" id="status"></div>
-    </section>
-
-    <section id="game-shell" class="panel">
-      <div id="game"></div>
-    </section>
+  <main id="cabinet">
+    <div id="game"></div>
   </main>
 
+  <div id="start-overlay">
+    <button id="start-button" type="button">Start</button>
+  </div>
+
+  <div id="loading">Loading</div>
+
   <script>
-    const statusEl = document.querySelector("#status");
-    const startHosted = document.querySelector("#start-hosted");
-    const startFile = document.querySelector("#start-file");
-    const reloadPage = document.querySelector("#reload-page");
-
+    const ROM_URL = "/roms/mslugx.zip";
+    const CORE = "fbneo";
     const DATA_PATH = "https://cdn.emulatorjs.org/stable/data/";
-    const LOADER_URL = DATA_PATH + "loader.js";
 
-    function setStatus(text) {
-      statusEl.textContent = text || "";
-    }
+    let started = false;
 
-    async function existsOnThisSite(path) {
-      if (!path || !path.trim()) return false;
-      try {
-        const response = await fetch(path.trim(), { method: "HEAD", cache: "no-store" });
-        return response.ok;
-      } catch {
-        return false;
-      }
-    }
+    document.getElementById("start-button").addEventListener("click", () => {
+      if (started) return;
+      started = true;
 
-    function disableLaunchButtons() {
-      startHosted.disabled = true;
-      startFile.disabled = true;
-    }
+      document.getElementById("loading").classList.add("visible");
 
-    function startEmulator({ core, gameUrl, biosUrl }) {
-      disableLaunchButtons();
-      setStatus("Starting EmulatorJS... If the screen stays black, open DevTools Console and check for ROM-set/BIOS errors.");
-
-      // Required by EmulatorJS.
       window.EJS_player = "#game";
-      window.EJS_core = core;
-      window.EJS_gameUrl = gameUrl;
+      window.EJS_core = CORE;
+      window.EJS_gameName = "Metal Slug X";
+      window.EJS_gameUrl = ROM_URL;
       window.EJS_pathtodata = DATA_PATH;
 
-      // Useful when debugging ROM set or BIOS problems.
-      window.EJS_DEBUG_XX = true;
+      // Start after the user click so audio can wake up cleanly.
+      window.EJS_startOnLoaded = true;
 
-      // Optional BIOS. For many Neo Geo arcade dumps this is neogeo.zip.
-      if (biosUrl) {
-        window.EJS_biosUrl = biosUrl;
-      }
+      // No extra BIOS. Your merged / massaged zip is the truth.
+      window.EJS_biosUrl = "";
 
-      const script = document.createElement("script");
-      script.src = LOADER_URL;
-      script.async = true;
-      script.onerror = () => setStatus("Could not load EmulatorJS loader.js from CDN.");
-      document.body.appendChild(script);
-    }
+      // Avoid the en-GB localization 404 noise.
+      window.EJS_language = "en-US";
+      window.EJS_disableAutoLang = true;
 
-    startHosted.addEventListener("click", async () => {
-      const core = document.querySelector("#core").value;
-      const romPath = document.querySelector("#hosted-rom").value.trim();
-      const biosPath = document.querySelector("#hosted-bios").value.trim();
+      // No threaded mode, so no custom Netlify headers needed.
+      window.EJS_threads = false;
 
-      if (!romPath) {
-        setStatus("Set a ROM path first, for example /roms/mslugx.zip");
-        return;
-      }
+      // Cleaner arcade UI.
+      window.EJS_alignStartButton = "center";
+      window.EJS_backgroundColor = "#000";
+      window.EJS_color = "#f6d36b";
+      window.EJS_volume = 1;
 
-      setStatus("Checking hosted files...");
-      const romExists = await existsOnThisSite(romPath);
-      if (!romExists) {
-        setStatus("ROM not found at " + romPath + "\nPlace your ROM there, redeploy, then launch again.");
-        return;
-      }
+      // Hide the toolbar chrome. EmulatorJS documents EJS_Buttons for this.
+      window.EJS_Buttons = {
+        playPause: false,
+        restart: false,
+        mute: false,
+        settings: false,
+        fullscreen: false,
+        saveState: false,
+        loadState: false,
+        screenRecord: false,
+        gamepad: false,
+        cheat: false,
+        volume: false,
+        saveSavFiles: false,
+        loadSavFiles: false,
+        quickSave: false,
+        quickLoad: false,
+        screenshot: false,
+        cacheManager: false,
+        exitEmulation: false
+      };
 
-      const biosExists = await existsOnThisSite(biosPath);
-      startEmulator({
-        core,
-        gameUrl: romPath,
-        biosUrl: biosExists ? biosPath : undefined
-      });
-    });
+      window.EJS_onGameStart = () => {
+        document.getElementById("start-overlay").classList.add("hidden");
+        document.getElementById("loading").classList.remove("visible");
+      };
 
-    startFile.addEventListener("click", () => {
-      const core = document.querySelector("#core").value;
-      const romFile = document.querySelector("#rom-file").files[0];
-      const biosFile = document.querySelector("#bios-file").files[0];
-
-      if (!romFile) {
-        setStatus("Choose a ROM file first.");
-        return;
-      }
-
-      startEmulator({
-        core,
-        gameUrl: romFile,
-        biosUrl: biosFile || undefined
-      });
-    });
-
-    reloadPage.addEventListener("click", () => {
-      location.reload();
+      const loader = document.createElement("script");
+      loader.src = DATA_PATH + "loader.js";
+      loader.async = true;
+      document.body.appendChild(loader);
     });
   </script>
 </body>
