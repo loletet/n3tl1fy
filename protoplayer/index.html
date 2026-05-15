@@ -16,7 +16,7 @@
       height: 100%;
       margin: 0;
       overflow: hidden;
-      background: #050505;
+      background: #000;
       color: #f4f4f4;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
@@ -29,11 +29,7 @@
     #cabinet {
       position: fixed;
       inset: 0;
-      display: grid;
-      place-items: center;
-      background:
-        radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.06), transparent 32rem),
-        linear-gradient(180deg, #111 0%, #050505 100%);
+      background: #000;
     }
 
     #game {
@@ -53,12 +49,12 @@
     #start-overlay {
       position: fixed;
       inset: 0;
-      z-index: 10;
+      z-index: 20;
       display: grid;
       place-items: center;
       background:
-        radial-gradient(circle at 50% 45%, rgba(255, 30, 30, 0.18), transparent 24rem),
-        rgba(0, 0, 0, 0.88);
+        radial-gradient(circle at 50% 42%, rgba(255, 30, 30, 0.18), transparent 24rem),
+        rgba(0, 0, 0, 0.9);
       transition: opacity 220ms ease;
     }
 
@@ -67,12 +63,20 @@
       pointer-events: none;
     }
 
+    #start-card {
+      display: grid;
+      gap: 1.2rem;
+      justify-items: center;
+      text-align: center;
+      padding: 2rem;
+    }
+
     #start-button {
       appearance: none;
       border: 2px solid #f6d36b;
       background: #141414;
       color: #f6d36b;
-      padding: 1rem 2rem;
+      padding: 1rem 2.2rem;
       border-radius: 999px;
       font-size: clamp(1.4rem, 4vw, 3rem);
       font-weight: 900;
@@ -89,11 +93,19 @@
       transform: translateY(2px);
     }
 
+    #hint {
+      color: rgba(246, 211, 107, 0.82);
+      font-size: clamp(0.8rem, 2vw, 1rem);
+      line-height: 1.7;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
     #loading {
       position: fixed;
       left: 50%;
       bottom: 2rem;
-      z-index: 11;
+      z-index: 21;
       transform: translateX(-50%);
       color: #f6d36b;
       font-size: 0.9rem;
@@ -111,11 +123,21 @@
 
 <body>
   <main id="cabinet">
-    <div id="game"></div>
+    <div id="game" tabindex="-1"></div>
   </main>
 
   <div id="start-overlay">
-    <button id="start-button" type="button">Start</button>
+    <div id="start-card">
+      <button id="start-button" type="button">Start</button>
+
+      <div id="hint">
+        Coin: V<br>
+        Start: Enter<br>
+        Move: Arrow keys<br>
+        Buttons: Z X A S<br>
+        Controls/Menu: bottom bar
+      </div>
+    </div>
   </div>
 
   <div id="loading">Loading</div>
@@ -139,50 +161,91 @@
       window.EJS_gameUrl = ROM_URL;
       window.EJS_pathtodata = DATA_PATH;
 
-      // Start after the user click so audio can wake up cleanly.
+      // Start only after click, otherwise browser audio policy can bite.
       window.EJS_startOnLoaded = true;
 
-      // No extra BIOS. Your merged / massaged zip is the truth.
+      // No BIOS, no parent ROM. Your merged zip is the complete romset.
       window.EJS_biosUrl = "";
+      window.EJS_gameParentUrl = "";
 
-      // Avoid the en-GB localization 404 noise.
+      // Avoid en-GB localization fetch noise.
       window.EJS_language = "en-US";
       window.EJS_disableAutoLang = true;
 
-      // No threaded mode, so no custom Netlify headers needed.
+      // No custom headers needed.
       window.EJS_threads = false;
 
-      // Cleaner arcade UI.
-      window.EJS_alignStartButton = "center";
       window.EJS_backgroundColor = "#000";
       window.EJS_color = "#f6d36b";
       window.EJS_volume = 1;
 
-      // Hide the toolbar chrome. EmulatorJS documents EJS_Buttons for this.
+      // Keyboard defaults.
+      // EmulatorJS labels index 2 as SELECT and index 3 as START.
+      // For arcade/Neo Geo, SELECT is your coin button.
+      window.EJS_defaultControls = {
+        0: {
+          0: { value: "z", value2: "BUTTON_2" },          // B / arcade button
+          1: { value: "x", value2: "BUTTON_4" },          // Y / arcade button
+          2: { value: "v", value2: "SELECT" },            // COIN
+          3: { value: "enter", value2: "START" },         // START
+          4: { value: "up arrow", value2: "DPAD_UP" },
+          5: { value: "down arrow", value2: "DPAD_DOWN" },
+          6: { value: "left arrow", value2: "DPAD_LEFT" },
+          7: { value: "right arrow", value2: "DPAD_RIGHT" },
+          8: { value: "a", value2: "BUTTON_1" },          // A / arcade button
+          9: { value: "s", value2: "BUTTON_3" },          // X / arcade button
+          10: { value: "q", value2: "LEFT_TOP_SHOULDER" },
+          11: { value: "e", value2: "RIGHT_TOP_SHOULDER" },
+          12: { value: "tab", value2: "LEFT_BOTTOM_SHOULDER" },
+          13: { value: "r", value2: "RIGHT_BOTTOM_SHOULDER" },
+          24: { value: "1" },
+          25: { value: "2" },
+          26: { value: "3" }
+        },
+        1: {},
+        2: {},
+        3: {}
+      };
+
+      // Playable but still clean: keep control/settings/fullscreen/audio alive.
       window.EJS_Buttons = {
-        playPause: false,
-        restart: false,
-        mute: false,
-        settings: false,
-        fullscreen: false,
-        saveState: false,
-        loadState: false,
+        playPause: true,
+        restart: true,
+        mute: true,
+        volume: true,
+        settings: true,
+        gamepad: true,
+        fullscreen: true,
+        saveState: true,
+        loadState: true,
+
+        // Hide the fluff.
         screenRecord: false,
-        gamepad: false,
         cheat: false,
-        volume: false,
-        saveSavFiles: false,
-        loadSavFiles: false,
         quickSave: false,
         quickLoad: false,
         screenshot: false,
         cacheManager: false,
+        saveSavFiles: false,
+        loadSavFiles: false,
         exitEmulation: false
       };
 
       window.EJS_onGameStart = () => {
         document.getElementById("start-overlay").classList.add("hidden");
         document.getElementById("loading").classList.remove("visible");
+
+        // Give the emulator keyboard focus.
+        setTimeout(() => {
+          const game = document.getElementById("game");
+          game.focus();
+
+          const canvas = document.querySelector("#game canvas");
+          if (canvas) {
+            canvas.setAttribute("tabindex", "-1");
+            canvas.focus();
+          }
+        }, 250);
       };
 
       const loader = document.createElement("script");
